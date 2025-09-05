@@ -23,4 +23,9 @@ export default defineNuxtConfig({
       },
     },
   },
+  runtimeConfig: {
+    public: {
+      openaiApiKey: process.env.OPENAI_API_KEY // ここにAPIキーを設定
+    }
+  }
 })
