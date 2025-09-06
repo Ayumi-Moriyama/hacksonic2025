@@ -50,6 +50,31 @@
           </v-card>
         </v-col>
       </v-row>
+      <!-- アファメーション表示カード -->
+      <v-row>
+        <v-col cols="12" md="6" class="mb-4">
+          <v-card>
+            <v-card-title>
+              <span>おすすめアファメーション</span>
+            </v-card-title>
+            <v-card-text>
+              <div v-if="affirmationLoading" class="text-center">
+                <v-progress-circular indeterminate color="primary" />
+                <div>生成中...</div>
+              </div>
+              <div v-else-if="affirmationError">
+                <v-alert type="error" dense>{{ affirmationError }}</v-alert>
+              </div>
+              <div v-else-if="affirmations.length > 0">
+                <ol>
+                  <li v-for="(a, i) in affirmations" :key="i">{{ a }}</li>
+                </ol>
+              </div>
+              <div v-else class="text-grey">まだアファメーションは生成されていません。</div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
       <!-- 性格診断の詳細ダイアログ -->
       <v-dialog v-model="showPersonality" max-width="500">
         <v-card>
@@ -90,6 +115,37 @@
         </v-card>
       </v-dialog>
     </template>
+    
+    <!-- アファメーション表示ダイアログ（廃止） -->
+    <!--
+    <v-dialog v-model="showAffirmation" max-width="500">
+      <v-card>
+        <v-card-title>おすすめアファメーション</v-card-title>
+        <v-card-text>
+          <div v-if="affirmationLoading" class="text-center">
+            <v-progress-circular indeterminate color="primary" />
+            <div>生成中...</div>
+          </div>
+          <div v-else-if="affirmationError">
+            <v-alert type="error" dense>{{ affirmationError }}</v-alert>
+          </div>
+          <div v-else-if="affirmations.length > 0">
+            <ol>
+              <li v-for="(a, i) in affirmations" :key="i">{{ a }}</li>
+            </ol>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn color="primary" @click="showAffirmation = false">閉じる</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    -->
+    <!-- アファメーション生成・診断リセットボタン -->
+    <div class="text-center my-8">
+      <v-btn color="success" class="mr-4" @click="onGenerateAffirmation">アファメーションを作る</v-btn>
+      <v-btn color="error" @click="onResetDiagnosis">最初から診断をやり直す</v-btn>
+    </div>
   </v-container>
 </template>
 
@@ -101,6 +157,47 @@ const showPersonality = ref(false)
 const showIdeal = ref(false)
 const personalityResult = ref('')
 const latestResult = ref({})
+
+const showAffirmation = ref(false) // UIからは未使用（ダイアログ廃止のため）
+const affirmations = ref([])
+const affirmationLoading = ref(false)
+const affirmationError = ref("")
+
+async function onGenerateAffirmation() {
+  affirmationError.value = ""
+  affirmations.value = []
+  if (!latestResult.value.idealSummary) {
+    affirmationError.value = "理想の人物像が見つかりません。"
+    return
+  }
+  affirmationLoading.value = true
+  try {
+    const res = await fetch("/api/affirmation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idealSummary: latestResult.value.idealSummary })
+    })
+    const data = await res.json()
+    if (data.affirmations && Array.isArray(data.affirmations)) {
+      affirmations.value = data.affirmations
+    } else {
+      affirmationError.value = "アファメーションの生成に失敗しました。"
+    }
+  } catch (e) {
+    affirmationError.value = "通信エラーが発生しました。"
+  } finally {
+    affirmationLoading.value = false
+  }
+}
+import { useRouter } from '#app'
+const router = useRouter()
+function onResetDiagnosis() {
+  localStorage.removeItem('ideal_results')
+  localStorage.removeItem('currentResultText')
+  localStorage.removeItem('gender')
+  // 必要に応じて他の診断関連データも削除
+  router.push('/')
+}
 
 onMounted(() => {
   // localStorageから診断履歴を取得

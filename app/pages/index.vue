@@ -15,6 +15,10 @@
 import { useRouter } from '#app'
 const router = useRouter()
 function startDiagnosis() {
+  // 以前の診断結果があればクリア
+  localStorage.removeItem('ideal_results')
+  localStorage.removeItem('currentResultText')
+  localStorage.removeItem('gender')
   router.push('/diagnosis')
 }
 </script>
