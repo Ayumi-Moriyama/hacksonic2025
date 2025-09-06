@@ -3,7 +3,25 @@
     <v-row justify="center">
       <v-col cols="12" md="8">
         <h2 class="text-center mb-6">現在の自分を診断</h2>
-        <div v-if="loading">
+        <!-- 性別選択 -->
+        <div v-if="!genderSelected">
+          <v-card>
+            <v-card-title class="text-center">
+              性別を選択してください
+            </v-card-title>
+            <v-card-text>
+              <v-radio-group v-model="gender" :mandatory="true">
+                <v-radio label="男性" value="male"></v-radio>
+                <v-radio label="女性" value="female"></v-radio>
+                <v-radio label="その他" value="other"></v-radio>
+              </v-radio-group>
+            </v-card-text>
+            <v-card-actions class="justify-center">
+              <v-btn color="primary" :disabled="!gender" @click="selectGender">決定</v-btn>
+            </v-card-actions>
+          </v-card>
+        </div>
+        <div v-else-if="loading">
           <LoadingAnimation
             :progress="progress"
             :loadingText="loadingText"
@@ -74,8 +92,27 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import LoadingAnimation from '~/components/LoadingAnimation.vue'
+
+const gender = ref('')
+const genderSelected = ref(false)
+
+onMounted(() => {
+  // 既にlocalStorageに保存されていれば自動選択
+  const saved = localStorage.getItem('gender')
+  if (saved) {
+    gender.value = saved
+    genderSelected.value = true
+  }
+})
+
+function selectGender() {
+  if (gender.value) {
+    localStorage.setItem('gender', gender.value)
+    genderSelected.value = true
+  }
+}
 
 const questions = [
   // Big Five

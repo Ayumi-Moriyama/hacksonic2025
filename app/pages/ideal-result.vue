@@ -25,31 +25,9 @@
               <p style="white-space: pre-line;">{{ result.compare }}</p>
             </div>
           </v-card>
-          <v-card class="mb-6 pa-4">
-            <h3 class="mb-2">テーマ選択順</h3>
-            <div class="mb-2">
-              <span v-for="(theme, idx) in themeOrder" :key="theme">
-                {{ theme }}<span v-if="idx < themeOrder.length - 1"> → </span>
-              </span>
-            </div>
-            <h4 class="mb-2">深掘り内容</h4>
-            <div v-for="theme in themeOrder" :key="theme" class="mb-3">
-              <strong>【{{ theme }}】</strong>
-              <div v-for="(msg, i) in themeHistories[theme]" :key="i" class="ml-2">
-                <span v-if="msg.role === 'user'">あなた: {{ msg.content }}</span>
-                <span v-else-if="msg.role === 'assistant'">カウンセラー: {{ msg.content }}</span>
-                <span v-else>{{ msg.content }}</span>
-              </div>
-            </div>
-          </v-card>
-          <v-card class="mb-6 pa-4">
-            <h3 class="mb-2">現在の自分の診断結果</h3>
-            <div v-if="currentResultText">
-              <pre style="white-space: pre-line;">{{ currentResultText }}</pre>
-            </div>
-          </v-card>
           <div class="text-center mt-8">
             <v-btn color="primary" @click="goHome">最初の画面に戻る</v-btn>
+            <v-btn color="secondary" class="ml-4" @click="goDashboard">ダッシュボードへ</v-btn>
           </div>
         </div>
       </v-col>
@@ -81,6 +59,25 @@ onMounted(() => {
       themeHistories.value = JSON.parse(h)
       currentResultText.value = crt || ''
       loaded.value = true
+
+      // 診断履歴をlocalStorageに追記
+      const newResult = result.value
+      if (newResult && newResult.idealSummary && newResult.compare) {
+        let history = []
+        try {
+          history = JSON.parse(localStorage.getItem('ideal_results') || '[]')
+        } catch {
+          history = []
+        }
+        // 直近と同じ内容は重複保存しない
+        if (
+          history.length === 0 ||
+          JSON.stringify(history[history.length - 1]) !== JSON.stringify(newResult)
+        ) {
+          history.push(newResult)
+          localStorage.setItem('ideal_results', JSON.stringify(history))
+        }
+      }
     } else {
       alert('診断データが見つかりません。')
       router.push('/')
@@ -93,6 +90,10 @@ onMounted(() => {
 
 function goHome() {
   router.push('/')
+}
+
+function goDashboard() {
+  router.push('/dashboard')
 }
 </script>
 
