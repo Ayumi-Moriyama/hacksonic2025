@@ -17,7 +17,8 @@ export default defineEventHandler(async (event) => {
       currentResultText,
       finish = false,
       currentTheme = '',
-      history = []
+      history = [],
+      gender = ''
     } = await readBody(event)
 
     // チャット深掘り中：従来通りAI返答のみ返す
@@ -45,6 +46,7 @@ export default defineEventHandler(async (event) => {
     // 1. 選択順・各テーマの深掘り内容から理想の人物像を要約
     let themeSummaryPrompt = `あなたはキャリアカウンセラーです。
 ユーザーは以下の3つの価値観テーマについて、選択順に深掘りチャットを行いました。
+- 性別: ${gender || '未回答'}
 - テーマの選択順（重視する価値観の優先度）: ${themeOrder.join(' → ')}
 - 各テーマの深掘りチャット履歴:
 `
@@ -106,7 +108,8 @@ export default defineEventHandler(async (event) => {
       finish: true,
       idealSummary,
       imageUrl,
-      compare
+      compare,
+      gender
     }
   } catch (e) {
     console.error('ideal.ts error:', e)

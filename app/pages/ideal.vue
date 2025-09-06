@@ -199,6 +199,13 @@ function goToDiagnosis() {
     progress.value = Math.min(100, Math.round((elapsed / duration) * 100))
   }, interval)
 
+  // 性別もlocalStorageから取得
+  let gender = ''
+  try {
+    const g = localStorage.getItem('gender')
+    if (g) gender = g
+  } catch (e) {}
+
   fetch('/api/ideal', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -207,7 +214,8 @@ function goToDiagnosis() {
       themeHistories: JSON.parse(JSON.stringify(themeHistories)),
       currentFactorScores,
       currentResultText,
-      finish: true
+      finish: true,
+      gender
     })
   })
     .then(res => res.json())
