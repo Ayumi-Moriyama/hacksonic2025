@@ -39,7 +39,7 @@
             <p>{{ resultText }}</p>
           </div>
           <v-divider class="my-6"></v-divider>
-          <h3>理想の自分像を入力してください</h3>
+          <!-- <h3>理想の自分像を入力してください</h3>
           <v-textarea
             v-model="idealSelf"
             label="理想の自分像（自由記述またはキーワード）"
@@ -55,7 +55,7 @@
           </div>
           <div v-if="imageError" class="mt-4 red--text">
             画像生成に失敗しました。
-          </div>
+          </div> -->
         </div>
         <div v-if="finished" class="mt-8 text-center">
           <v-btn color="secondary" class="mt-6" @click="goToIdeal">

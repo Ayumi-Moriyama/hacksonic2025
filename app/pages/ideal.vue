@@ -3,43 +3,35 @@
     <v-row justify="center">
       <v-col cols="12" md="8">
         <h2 class="text-center mb-6">理想の自分を診断</h2>
-        <div v-if="step === 0">
+        <!-- テーマ選択 -->
+        <div v-if="step === 'selectTheme'">
           <v-card class="mb-6">
             <v-card-title class="text-center">
-              あなたが一番自分らしくいられる時間は？
+              あなたが深掘りしたいテーマを選んでください（{{ themeOrder.length + 1 }}/3）
             </v-card-title>
             <v-card-text>
               <v-btn
                 block
                 color="primary"
                 class="mb-2"
-                @click="selectInitial('仕事をしているとき')"
+                v-for="theme in remainingThemes"
+                :key="theme"
+                @click="startTheme(theme)"
               >
-                仕事をしているとき
-              </v-btn>
-              <v-btn
-                block
-                color="primary"
-                class="mb-2"
-                @click="selectInitial('人と過ごすとき')"
-              >
-                人と過ごすとき
-              </v-btn>
-              <v-btn
-                block
-                color="primary"
-                class="mb-2"
-                @click="selectInitial('自分だけで過ごすひととき')"
-              >
-                自分だけで過ごすひととき
+                {{ theme }}
               </v-btn>
             </v-card-text>
           </v-card>
         </div>
-        <div v-else>
+        <!-- チャット深掘り -->
+        <div v-else-if="step === 'chat'">
+          <div class="mb-4">
+            <strong>テーマ: {{ currentTheme }}</strong>
+            <span class="ml-4">({{ turnCount }}/3往復)</span>
+          </div>
           <div class="chat-area mb-4">
-            <div v-for="(msg, i) in chatHistory" :key="i" :class="msg.role === 'user' ? 'chat-user' : 'chat-ai'">
-              <v-card :color="msg.role === 'user' ? 'blue lighten-5' : 'grey lighten-4'" class="pa-3 mb-2">
+            <div v-for="(msg, i) in themeHistories[currentTheme]" :key="i" :class="msg.role === 'user' ? 'chat-user' : 'chat-ai'">
+              <v-card :color="msg.role === 'user' ? 'blue lighten-5' : msg.role === 'assistant' ? 'grey lighten-4' : 'green lighten-5'" class="pa-3 mb-2">
                 <div>{{ msg.content }}</div>
               </v-card>
             </div>
@@ -47,33 +39,49 @@
           <v-text-field
             v-model="userInput"
             label="メッセージを入力"
-            :disabled="loading || finished"
+            :disabled="loading"
             @keyup.enter="sendUserMessage"
             append-inner-icon="mdi-send"
             @click:append-inner="sendUserMessage"
           ></v-text-field>
-          <v-btn color="primary" class="mt-2" :disabled="!userInput || loading || finished" @click="sendUserMessage">
+          <v-btn color="primary" class="mt-2" :disabled="!userInput || loading" @click="sendUserMessage">
             送信
           </v-btn>
         </div>
-        <div v-if="finished" class="mt-8 text-center">
-          <h3>理想の自分像</h3>
-          <p>{{ idealSummary }}</p>
-          <v-btn color="primary" class="mt-4" @click="generateIdealImage" :disabled="generatingImage">
-            理想の自分のイメージ画像を生成
+        <!-- 次のテーマ選択 or 診断結果選択 -->
+        <div v-else-if="step === 'nextOrResult'">
+          <v-card class="mb-6">
+            <v-card-title class="text-center">
+              残りのテーマから次に深掘りしたいものを選んでください
+            </v-card-title>
+            <v-card-text>
+              <v-btn
+                block
+                color="primary"
+                class="mb-2"
+                v-for="theme in remainingThemes"
+                :key="theme"
+                @click="startTheme(theme)"
+              >
+                {{ theme }}
+              </v-btn>
+              <v-divider class="my-4"></v-divider>
+              <v-btn
+                block
+                color="secondary"
+                class="mb-2"
+                @click="goToDiagnosis"
+              >
+                この時点で診断結果を見る
+              </v-btn>
+            </v-card-text>
+          </v-card>
+        </div>
+        <!-- 全テーマ終了時の診断結果遷移 -->
+        <div v-else-if="step === 'allDone'" class="text-center">
+          <v-btn color="primary" class="mt-6" @click="goToDiagnosis">
+            診断結果を見る
           </v-btn>
-          <div v-if="imageUrl" class="mt-6">
-            <h4>理想の自分のイメージ</h4>
-            <v-img :src="imageUrl" max-width="400" class="mx-auto mt-4" />
-          </div>
-          <div v-if="imageError" class="mt-4 red--text">
-            画像生成に失敗しました。
-          </div>
-          <v-divider class="my-6"></v-divider>
-          <h3>現在の自分との比較・アドバイス</h3>
-          <div v-if="compareText">
-            <p>{{ compareText }}</p>
-          </div>
         </div>
       </v-col>
     </v-row>
@@ -81,92 +89,111 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
-const step = ref(0)
-const chatHistory = ref([])
+const themes = [
+  '仕事をしているとき',
+  '人と過ごすとき',
+  '自分だけで過ごすひととき'
+]
+const step = ref('selectTheme') // 'selectTheme' | 'chat' | 'nextOrResult' | 'allDone'
+const themeOrder = ref([])
+const themeHistories = reactive({})
+const finishedThemes = ref([])
+const currentTheme = ref('')
+const turnCount = ref(0)
 const userInput = ref('')
 const loading = ref(false)
-const finished = ref(false)
-const idealSummary = ref('')
-const imageUrl = ref('')
-const imageError = ref(false)
-const generatingImage = ref(false)
-const compareText = ref('')
 
-// 現在の自分の診断結果
-const currentFactorScores = ref(null)
-const currentResultText = ref('')
+const router = useRouter()
 
 onMounted(() => {
-  // localStorageから現在の自分の診断結果を取得
-  try {
-    const scores = localStorage.getItem('currentFactorScores')
-    const text = localStorage.getItem('currentResultText')
-    if (scores) currentFactorScores.value = JSON.parse(scores)
-    if (text) currentResultText.value = text
-  } catch (e) {}
+  // 初期化
+  themes.forEach(t => { themeHistories[t] = [] })
 })
 
-function selectInitial(choice) {
-  step.value = 1
-  chatHistory.value.push({
-    role: 'system',
-    content: `あなたが一番自分らしくいられる時間は「${choice}」なのですね。もう少し詳しく教えてください。`
-  })
+const remainingThemes = computed(() =>
+  themes.filter(t => !finishedThemes.value.includes(t) && !themeOrder.value.includes(t))
+)
+
+function startTheme(theme) {
+  currentTheme.value = theme
+  if (!themeOrder.value.includes(theme)) {
+    themeOrder.value.push(theme)
+  }
+  turnCount.value = 0
+  step.value = 'chat'
+  // 最初のsystemメッセージ
+  if (themeHistories[theme].length === 0) {
+    themeHistories[theme].push({
+      role: 'system',
+      content: `「${theme}」について、あなたが大切にしていることや感じていることを教えてください。`
+    })
+  }
+  userInput.value = ''
 }
 
 async function sendUserMessage() {
   if (!userInput.value) return
-  chatHistory.value.push({ role: 'user', content: userInput.value })
+  themeHistories[currentTheme.value].push({ role: 'user', content: userInput.value })
   loading.value = true
-  // サーバーAPIでAI返答を取得
   try {
     const res = await fetch('/api/ideal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        history: chatHistory.value,
-        currentFactorScores: currentFactorScores.value,
-        currentResultText: currentResultText.value
+        themeOrder: themeOrder.value,
+        themeHistories: JSON.parse(JSON.stringify(themeHistories)),
+        currentTheme: currentTheme.value,
+        history: themeHistories[currentTheme.value],
+        finish: false
       })
     })
     const data = await res.json()
-    if (data.finish) {
-      finished.value = true
-      idealSummary.value = data.summary
-      compareText.value = data.compare
-    } else {
-      chatHistory.value.push({ role: 'assistant', content: data.reply })
+    themeHistories[currentTheme.value].push({ role: 'assistant', content: data.reply })
+    turnCount.value += 1
+    if (turnCount.value >= 3) {
+      finishedThemes.value.push(currentTheme.value)
+      if (themeOrder.value.length < 3 && remainingThemes.value.length > 0) {
+        step.value = 'nextOrResult'
+      } else if (themeOrder.value.length === 3) {
+        step.value = 'allDone'
+      }
     }
   } catch (e) {
-    chatHistory.value.push({ role: 'assistant', content: 'エラーが発生しました。' })
+    themeHistories[currentTheme.value].push({ role: 'assistant', content: 'エラーが発生しました。' })
   }
   userInput.value = ''
   loading.value = false
 }
 
-async function generateIdealImage() {
-  generatingImage.value = true
-  imageError.value = false
-  imageUrl.value = ''
-  try {
-    const prompt = `理想の自分像: ${idealSummary.value}。日本人男女の人物イラスト。`
-    const res = await fetch('/api/dalle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt })
+function goToDiagnosis() {
+  // APIへthemeOrder/themeHistoriesを送信し、診断結果ページへ遷移
+  loading.value = true
+  fetch('/api/ideal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      themeOrder: themeOrder.value,
+      themeHistories: JSON.parse(JSON.stringify(themeHistories)),
+      finish: true
     })
-    const data = await res.json()
-    if (data.url) {
-      imageUrl.value = data.url
-    } else {
-      imageError.value = true
-    }
-  } catch (e) {
-    imageError.value = true
-  }
-  generatingImage.value = false
+  })
+    .then(res => res.json())
+    .then(data => {
+      // 診断結果データをsessionStorageに保存
+      sessionStorage.setItem('ideal_themeOrder', JSON.stringify(themeOrder.value))
+      sessionStorage.setItem('ideal_themeHistories', JSON.stringify(themeHistories))
+      sessionStorage.setItem('ideal_result', JSON.stringify(data))
+      router.push('/diagnosis')
+    })
+    .catch(() => {
+      alert('診断結果の取得に失敗しました。')
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
 </script>
 
