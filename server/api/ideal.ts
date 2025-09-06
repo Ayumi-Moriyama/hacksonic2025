@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
       messages: [
         { role: 'system', content: themeSummaryPrompt }
       ],
-      max_tokens: 120
+      max_tokens: 300
     })
     const idealSummary = summaryCompletion.choices[0].message?.content || ''
 
@@ -99,7 +99,7 @@ export default defineEventHandler(async (event) => {
       messages: [
         { role: 'system', content: comparePrompt }
       ],
-      max_tokens: 200
+      max_tokens: 500
     })
     const compare = compareCompletion.choices[0].message?.content || ''
 
