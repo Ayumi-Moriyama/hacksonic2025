@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container class="sunrise-bg">
     <v-row justify="center">
       <v-col cols="12" md="8">
         <h2 class="text-center mb-6">理想の自分 診断結果</h2>
@@ -100,5 +100,9 @@ function goDashboard() {
 <style scoped>
 .mb-6 {
   margin-bottom: 2rem;
+}
+.sunrise-bg {
+  min-height: 100vh;
+  background: radial-gradient(circle at 50% 40%, #ffe5b4 0%, #ffb347 40%, #fff5e1 100%);
 }
 </style>
