@@ -3,8 +3,14 @@
     <v-row justify="center">
       <v-col cols="12" md="8">
         <h2 class="text-center mb-6">理想の自分を診断</h2>
+        <div v-if="loading">
+          <LoadingAnimation
+            :progress="progress"
+            loadingText="診断結果を生成中..."
+          />
+        </div>
         <!-- テーマ選択 -->
-        <div v-if="step === 'selectTheme'">
+        <div v-else-if="step === 'selectTheme'">
           <v-card class="mb-6">
             <v-card-title class="text-center">
               あなたが深掘りしたいテーマを選んでください（{{ themeOrder.length + 1 }}/3）
@@ -91,6 +97,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import LoadingAnimation from '~/components/LoadingAnimation.vue'
 
 const themes = [
   '仕事をしているとき',
@@ -105,6 +112,7 @@ const currentTheme = ref('')
 const turnCount = ref(0)
 const userInput = ref('')
 const loading = ref(false)
+const progress = ref(null)
 
 const router = useRouter()
 
@@ -171,6 +179,7 @@ async function sendUserMessage() {
 function goToDiagnosis() {
   // APIへthemeOrder/themeHistories/現在の自分データを送信し、診断結果ページへ遷移
   loading.value = true
+  progress.value = 0
   // localStorageから現在の自分の診断データを取得
   let currentFactorScores = null
   let currentResultText = ''
@@ -180,6 +189,16 @@ function goToDiagnosis() {
     const crt = localStorage.getItem('currentResultText')
     if (crt) currentResultText = crt
   } catch (e) {}
+
+  // 進捗率アニメーション
+  const duration = 2500 // API応答が遅い場合はこの値を調整
+  const interval = 30
+  let elapsed = 0
+  const timer = setInterval(() => {
+    elapsed += interval
+    progress.value = Math.min(100, Math.round((elapsed / duration) * 100))
+  }, interval)
+
   fetch('/api/ideal', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -197,13 +216,19 @@ function goToDiagnosis() {
       sessionStorage.setItem('ideal_themeOrder', JSON.stringify(themeOrder.value))
       sessionStorage.setItem('ideal_themeHistories', JSON.stringify(themeHistories))
       sessionStorage.setItem('ideal_result', JSON.stringify(data))
-      router.push('/ideal-result')
+      progress.value = 100
+      clearInterval(timer)
+      setTimeout(() => {
+        router.push('/ideal-result')
+        loading.value = false
+        progress.value = null
+      }, 300)
     })
     .catch(() => {
+      clearInterval(timer)
       alert('診断結果の取得に失敗しました。')
-    })
-    .finally(() => {
       loading.value = false
+      progress.value = null
     })
 }
 </script>

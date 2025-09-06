@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
       themeSummaryPrompt += `\n【${theme}】\n`
       const historyArr = themeHistories[theme] || []
       for (const msg of historyArr) {
-        themeSummaryPrompt += `${msg.role === 'user' ? 'ユーザー' : 'カウンセラー'}: ${msg.content}\n`
+        themeSummaryPrompt += `${msg.role === 'user' ? 'あなた' : 'カウンセラー'}: ${msg.content}\n`
       }
     }
     themeSummaryPrompt += `

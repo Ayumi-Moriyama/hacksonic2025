@@ -36,7 +36,7 @@
             <div v-for="theme in themeOrder" :key="theme" class="mb-3">
               <strong>【{{ theme }}】</strong>
               <div v-for="(msg, i) in themeHistories[theme]" :key="i" class="ml-2">
-                <span v-if="msg.role === 'user'">ユーザー: {{ msg.content }}</span>
+                <span v-if="msg.role === 'user'">あなた: {{ msg.content }}</span>
                 <span v-else-if="msg.role === 'assistant'">カウンセラー: {{ msg.content }}</span>
                 <span v-else>{{ msg.content }}</span>
               </div>

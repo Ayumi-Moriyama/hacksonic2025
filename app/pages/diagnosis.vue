@@ -3,7 +3,13 @@
     <v-row justify="center">
       <v-col cols="12" md="8">
         <h2 class="text-center mb-6">現在の自分を診断</h2>
-        <div v-if="!finished">
+        <div v-if="loading">
+          <LoadingAnimation
+            :progress="progress"
+            :loadingText="loadingText"
+          />
+        </div>
+        <div v-else-if="!finished">
           <v-card>
             <v-card-title class="text-center">
               {{ questions[currentQuestion].label }}
@@ -23,10 +29,10 @@
               </v-radio-group>
             </v-card-text>
             <v-card-actions class="justify-center">
-              <v-btn text @click="prevQuestion" :disabled="currentQuestion === 0">戻る</v-btn>
-              <v-btn color="primary" @click="nextQuestion" :disabled="!answers[questions[currentQuestion].key]">
-                {{ isLastQuestion ? '診断結果を見る' : '次へ' }}
-              </v-btn>
+<v-btn text @click="prevQuestion" :disabled="currentQuestion === 0 || loading">戻る</v-btn>
+<v-btn color="primary" @click="nextQuestion" :disabled="!answers[questions[currentQuestion].key] || loading">
+  {{ isLastQuestion ? '診断結果を見る' : '次へ' }}
+</v-btn>
             </v-card-actions>
           </v-card>
         </div>
@@ -69,6 +75,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import LoadingAnimation from '~/components/LoadingAnimation.vue'
 
 const questions = [
   // Big Five
@@ -288,18 +295,43 @@ const answers = ref({})
 questions.forEach(q => { answers.value[q.key] = null })
 
 const finished = ref(false)
+const loading = ref(false)
 const resultText = ref('')
 const idealSelf = ref('')
 const imageUrl = ref('')
 const imageError = ref(false)
 const generatingImage = ref(false)
 
+// 進捗率・ローディングテキスト
+const progress = ref(null)
+const loadingText = ref('読み込み中...')
+
 const isLastQuestion = computed(() => currentQuestion.value === questions.length - 1)
 
 function nextQuestion() {
   if (!answers.value[questions[currentQuestion.value].key]) return
   if (isLastQuestion.value) {
-    submitDiagnosis()
+    loading.value = true
+    progress.value = 0
+    loadingText.value = '診断結果を生成中...'
+    // 1.8秒で0→100%進捗
+    const duration = 1800
+    const interval = 30
+    let elapsed = 0
+    const timer = setInterval(() => {
+      elapsed += interval
+      progress.value = Math.min(100, Math.round((elapsed / duration) * 100))
+      if (elapsed >= duration) {
+        clearInterval(timer)
+        progress.value = 100
+        setTimeout(() => {
+          submitDiagnosis()
+          loading.value = false
+          progress.value = null
+          loadingText.value = '読み込み中...'
+        }, 200)
+      }
+    }, interval)
   } else {
     currentQuestion.value++
   }
