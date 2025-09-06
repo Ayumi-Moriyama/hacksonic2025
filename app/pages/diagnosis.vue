@@ -464,7 +464,7 @@ function goToIdeal() {
 }
 .mirror-glint {
   position: absolute;
-  top: 8%;
+  top: 10%;
   left: -20%;
   width: 140%;
   height: 8px;
@@ -472,32 +472,32 @@ function goToIdeal() {
   opacity: 0;
   pointer-events: none;
   z-index: 0;
-  filter: blur(1px);
+  filter: blur(2px);
   border-radius: 10px;
-  transform: rotate(-15deg);
+  transform: rotate(-15deg) translateY(0%);
   animation: glint-move 3.2s linear infinite;
 }
 
 @keyframes glint-move {
   0% {
     opacity: 0;
-    transform: translateX(-30%) rotate(-15deg) scaleY(1);
+    transform: translateX(-30%) translateY(0%) rotate(-15deg) scaleY(1);
   }
   10% {
     opacity: 1;
-    transform: translateX(-10%) rotate(-15deg) scaleY(1.5);
+    transform: translateX(-10%) translateY(20%) rotate(-15deg) scaleY(1.5);
   }
   50% {
     opacity: 1;
-    transform: translateX(60%) rotate(-15deg) scaleY(1.8);
+    transform: translateX(60%) translateY(60%) rotate(-15deg) scaleY(1.8);
   }
   80% {
     opacity: 0.7;
-    transform: translateX(110%) rotate(-15deg) scaleY(1.2);
+    transform: translateX(110%) translateY(90%) rotate(-15deg) scaleY(1.2);
   }
   100% {
     opacity: 0;
-    transform: translateX(110%) rotate(-15deg) scaleY(1);
+    transform: translateX(110%) translateY(100%) rotate(-15deg) scaleY(1);
   }
 }
 .mb-6 {
