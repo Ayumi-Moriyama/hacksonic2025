@@ -57,6 +57,11 @@
             画像生成に失敗しました。
           </div>
         </div>
+        <div v-if="finished" class="mt-8 text-center">
+          <v-btn color="secondary" class="mt-6" @click="goToIdeal">
+            理想の自分を診断
+          </v-btn>
+        </div>
       </v-col>
     </v-row>
   </v-container>
@@ -369,6 +374,12 @@ async function generateIdealImage() {
     imageError.value = true
   }
   generatingImage.value = false
+}
+function goToIdeal() {
+  // 診断結果をlocalStorageに保存
+  localStorage.setItem('currentFactorScores', JSON.stringify(factorScores.value))
+  localStorage.setItem('currentResultText', resultText.value)
+  window.location.href = '/ideal'
 }
 </script>
 
