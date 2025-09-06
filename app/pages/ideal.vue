@@ -169,14 +169,25 @@ async function sendUserMessage() {
 }
 
 function goToDiagnosis() {
-  // APIへthemeOrder/themeHistoriesを送信し、診断結果ページへ遷移
+  // APIへthemeOrder/themeHistories/現在の自分データを送信し、診断結果ページへ遷移
   loading.value = true
+  // localStorageから現在の自分の診断データを取得
+  let currentFactorScores = null
+  let currentResultText = ''
+  try {
+    const cfs = localStorage.getItem('currentFactorScores')
+    if (cfs) currentFactorScores = JSON.parse(cfs)
+    const crt = localStorage.getItem('currentResultText')
+    if (crt) currentResultText = crt
+  } catch (e) {}
   fetch('/api/ideal', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       themeOrder: themeOrder.value,
       themeHistories: JSON.parse(JSON.stringify(themeHistories)),
+      currentFactorScores,
+      currentResultText,
       finish: true
     })
   })
@@ -186,7 +197,7 @@ function goToDiagnosis() {
       sessionStorage.setItem('ideal_themeOrder', JSON.stringify(themeOrder.value))
       sessionStorage.setItem('ideal_themeHistories', JSON.stringify(themeHistories))
       sessionStorage.setItem('ideal_result', JSON.stringify(data))
-      router.push('/diagnosis')
+      router.push('/ideal-result')
     })
     .catch(() => {
       alert('診断結果の取得に失敗しました。')
