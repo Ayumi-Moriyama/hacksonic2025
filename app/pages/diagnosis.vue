@@ -3,88 +3,28 @@
     <v-row justify="center">
       <v-col cols="12" md="8">
         <h2 class="text-center mb-6">診断スタート</h2>
-        <v-stepper v-model="step">
-          <v-stepper-header>
-            <v-stepper-step :complete="step > 1" step="1">
-              仕事（お金含む）
-            </v-stepper-step>
-            <v-divider></v-divider>
-            <v-stepper-step :complete="step > 2" step="2">
-              人間関係（恋愛含む）
-            </v-stepper-step>
-            <v-divider></v-divider>
-            <v-stepper-step step="3">
-              時間の使い方
-            </v-stepper-step>
-          </v-stepper-header>
-
-          <v-stepper-items>
-            <!-- Step 1: 仕事 -->
-            <v-stepper-content step="1">
-              <v-form ref="form1" v-model="valid[0]">
-                <v-text-field
-                  v-model="answers.jobStyle"
-                  label="理想の働き方は？"
-                  required
-                ></v-text-field>
-                <v-text-field
-                  v-model="answers.moneyValue"
-                  label="お金に対する価値観は？"
-                  required
-                ></v-text-field>
-                <v-btn color="primary" @click="nextStep" :disabled="!valid[0]">
-                  次へ
-                </v-btn>
-              </v-form>
-            </v-stepper-content>
-
-            <!-- Step 2: 人間関係 -->
-            <v-stepper-content step="2">
-              <v-form ref="form2" v-model="valid[1]">
-                <v-text-field
-                  v-model="answers.relationship"
-                  label="理想の人間関係は？"
-                  required
-                ></v-text-field>
-                <v-text-field
-                  v-model="answers.love"
-                  label="恋愛で大切にしたいことは？"
-                  required
-                ></v-text-field>
-                <v-btn color="primary" @click="nextStep" :disabled="!valid[1]">
-                  次へ
-                </v-btn>
-                <v-btn text @click="prevStep" class="ml-2">
-                  戻る
-                </v-btn>
-              </v-form>
-            </v-stepper-content>
-
-            <!-- Step 3: 時間の使い方 -->
-            <v-stepper-content step="3">
-              <v-form ref="form3" v-model="valid[2]">
-                <v-text-field
-                  v-model="answers.timeUsage"
-                  label="理想の時間の使い方は？"
-                  required
-                ></v-text-field>
-                <v-text-field
-                  v-model="answers.hobby"
-                  label="趣味や余暇の過ごし方は？"
-                  required
-                ></v-text-field>
-                <v-btn color="success" @click="submitDiagnosis" :disabled="!valid[2]">
-                  診断結果を見る
-                </v-btn>
-                <v-btn text @click="prevStep" class="ml-2">
-                  戻る
-                </v-btn>
-              </v-form>
-            </v-stepper-content>
-          </v-stepper-items>
-        </v-stepper>
-
-        <div v-if="result" class="mt-8 text-center">
+        <div v-if="!finished">
+          <v-card>
+            <v-card-title class="text-center">
+              {{ questions[currentQuestion].label }}
+            </v-card-title>
+            <v-card-text>
+              <v-text-field
+                v-model="answers[questions[currentQuestion].key]"
+                :label="questions[currentQuestion].placeholder"
+                required
+                @keyup.enter="nextQuestion"
+              ></v-text-field>
+            </v-card-text>
+            <v-card-actions class="justify-center">
+              <v-btn text @click="prevQuestion" :disabled="currentQuestion === 0">戻る</v-btn>
+              <v-btn color="primary" @click="nextQuestion" :disabled="!answers[questions[currentQuestion].key]">
+                {{ isLastQuestion ? '診断結果を見る' : '次へ' }}
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </div>
+        <div v-else class="mt-8 text-center">
           <h3>あなたの理想の自分</h3>
           <p>{{ result }}</p>
           <v-img v-if="imageUrl" :src="imageUrl" max-width="400" class="mx-auto mt-4" />
@@ -95,10 +35,42 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
-const step = ref(1)
-const valid = ref([false, false, false])
+const questions = [
+  {
+    key: 'jobStyle',
+    label: '仕事（お金含む）',
+    placeholder: '理想の働き方は？'
+  },
+  {
+    key: 'moneyValue',
+    label: '仕事（お金含む）',
+    placeholder: 'お金に対する価値観は？'
+  },
+  {
+    key: 'relationship',
+    label: '人間関係（恋愛含む）',
+    placeholder: '理想の人間関係は？'
+  },
+  {
+    key: 'love',
+    label: '人間関係（恋愛含む）',
+    placeholder: '恋愛で大切にしたいことは？'
+  },
+  {
+    key: 'timeUsage',
+    label: '時間の使い方',
+    placeholder: '理想の時間の使い方は？'
+  },
+  {
+    key: 'hobby',
+    label: '時間の使い方',
+    placeholder: '趣味や余暇の過ごし方は？'
+  }
+]
+
+const currentQuestion = ref(0)
 const answers = ref({
   jobStyle: '',
   moneyValue: '',
@@ -107,26 +79,34 @@ const answers = ref({
   timeUsage: '',
   hobby: ''
 })
+const finished = ref(false)
 const result = ref('')
 const imageUrl = ref('')
 
-function nextStep() {
-  if (step.value < 3) step.value++
+const isLastQuestion = computed(() => currentQuestion.value === questions.length - 1)
+
+function nextQuestion() {
+  if (!answers.value[questions[currentQuestion.value].key]) return
+  if (isLastQuestion.value) {
+    submitDiagnosis()
+  } else {
+    currentQuestion.value++
+  }
 }
-function prevStep() {
-  if (step.value > 1) step.value--
+function prevQuestion() {
+  if (currentQuestion.value > 0) currentQuestion.value--
 }
 
 async function submitDiagnosis() {
-  // 結果テキスト生成
+  finished.value = true
+  // 診断結果テキスト生成
   result.value = `あなたの理想の働き方は「${answers.value.jobStyle}」、お金に対する価値観は「${answers.value.moneyValue}」。
 理想の人間関係は「${answers.value.relationship}」、恋愛で大切にしたいことは「${answers.value.love}」。
 理想の時間の使い方は「${answers.value.timeUsage}」、趣味や余暇の過ごし方は「${answers.value.hobby}」です。`
 
-  // DALL-E用プロンプト生成
-  const prompt = `理想の自分: 仕事は${answers.value.jobStyle}、お金は${answers.value.moneyValue}、人間関係は${answers.value.relationship}、恋愛は${answers.value.love}、時間の使い方は${answers.value.timeUsage}、趣味は${answers.value.hobby}。`
+  // DALL-E用プロンプト生成（人物イラストを明示）
+  const prompt = `理想の自分をイメージした日本人男女の人物イラスト。仕事は${answers.value.jobStyle}、お金は${answers.value.moneyValue}、人間関係は${answers.value.relationship}、恋愛は${answers.value.love}、時間の使い方は${answers.value.timeUsage}、趣味は${answers.value.hobby}。`
 
-  // サーバーサイドAPI経由で画像生成（仮: /api/dalle）
   try {
     const res = await fetch('/api/dalle', {
       method: 'POST',
@@ -135,6 +115,9 @@ async function submitDiagnosis() {
     })
     const data = await res.json()
     imageUrl.value = data.url
+    if (!data.url) {
+      result.value += '\n画像生成に失敗しました。'
+    }
   } catch (e) {
     imageUrl.value = ''
     result.value += '\n画像生成に失敗しました。'
