@@ -12,11 +12,25 @@
             <div v-if="result.idealSummary">
               <p class="mb-4">{{ result.idealSummary }}</p>
             </div>
-            <div v-if="result.imageUrl">
-              <v-img :src="result.imageUrl" max-width="400" class="mx-auto mb-4" />
+            <div v-if="result.base64 || result.imageUrl">
+              <v-img
+                v-if="result.base64"
+                :src="`data:image/png;base64,${result.base64}`"
+                max-width="400"
+                class="mx-auto mb-4"
+              />
+              <v-img
+                v-else
+                :src="result.imageUrl"
+                max-width="400"
+                class="mx-auto mb-4"
+              />
             </div>
             <div v-else class="mb-4 red--text">
               イメージ画像の生成に失敗しました。
+            </div>
+            <div v-if="result.error" class="mb-4 red--text">
+              画像生成エラー: {{ result.error }}
             </div>
           </v-card>
           <v-card class="mb-6 pa-4">
