@@ -14,14 +14,6 @@
             <v-card-title>
               <span>性格診断の結果</span>
             </v-card-title>
-            <!-- <v-card-text>
-              <div v-if="personalityResult">
-                <p style="white-space: pre-line;">{{ personalityResult }}</p>
-              </div>
-              <div v-if="latestResult.gender">
-                <strong>性別:</strong> {{ latestResult.gender }}
-              </div>
-            </v-card-text> -->
             <v-card-actions>
               <v-btn color="primary" @click.stop="showPersonality = true">詳細を見る</v-btn>
             </v-card-actions>
@@ -33,19 +25,6 @@
             <v-card-title>
               <span>理想の人物像の結果</span>
             </v-card-title>
-            <!-- <v-card-text>
-              <div v-if="latestResult.idealSummary">
-                <strong>理想の人物像:</strong>
-                <p>{{ latestResult.idealSummary }}</p>
-              </div>
-              <div v-if="latestResult.imageUrl">
-                <v-img :src="latestResult.imageUrl" max-width="300" class="mx-auto mb-2" />
-              </div>
-              <div v-if="latestResult.compare">
-                <strong>アドバイス:</strong>
-                <p class="mb-0" style="white-space: pre-line; max-height: 3.5em; overflow: hidden; text-overflow: ellipsis;">{{ latestResult.compare }}</p>
-              </div>
-            </v-card-text> -->
             <v-card-actions>
               <v-btn color="primary" @click.stop="showIdeal = true">詳細を見る</v-btn>
             </v-card-actions>
@@ -118,35 +97,11 @@
       </v-dialog>
     </template>
     
-    <!-- アファメーション表示ダイアログ（廃止） -->
-    <!--
-    <v-dialog v-model="showAffirmation" max-width="500">
-      <v-card>
-        <v-card-title>おすすめアファメーション</v-card-title>
-        <v-card-text>
-          <div v-if="affirmationLoading" class="text-center">
-            <v-progress-circular indeterminate color="primary" />
-            <div>生成中...</div>
-          </div>
-          <div v-else-if="affirmationError">
-            <v-alert type="error" dense>{{ affirmationError }}</v-alert>
-          </div>
-          <div v-else-if="affirmations.length > 0">
-            <ol>
-              <li v-for="(a, i) in affirmations" :key="i">{{ a }}</li>
-            </ol>
-          </div>
-        </v-card-text>
-        <v-card-actions>
-          <v-btn color="primary" @click="showAffirmation = false">閉じる</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-    -->
-    <!-- アファメーション生成・診断リセットボタン -->
+    <!-- アファメーション生成・診断リセット・PDF出力ボタン -->
     <div class="text-center my-8">
       <v-btn color="success" class="mr-4" @click="onGenerateAffirmation">アファメーションを作る</v-btn>
-      <v-btn color="error" @click="onResetDiagnosis">最初から診断をやり直す</v-btn>
+      <v-btn color="error" class="mr-4" @click="onResetDiagnosis">最初から診断をやり直す</v-btn>
+      <v-btn color="info" @click="onExportPdf" :disabled="affirmations.length === 0">PDF出力</v-btn>
     </div>
   </v-container>
   </div>
@@ -225,6 +180,71 @@ onMounted(() => {
     personalityResult.value = ''
   }
 })
+
+/**
+ * 画像URLをBase64に変換
+ */
+async function imageUrlToBase64(url) {
+  try {
+    const res = await fetch(url)
+    const blob = await res.blob()
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+  } catch {
+    return null
+  }
+}
+
+/*
+ * PDF出力処理
+ * - 診断データ取得
+ * - latestResult.imageUrlがあればfetch→blob→FileReaderでBase64化
+ * - jsPDFでA4縦1枚に情報をレイアウト（画像・テキスト・リスト）
+ * - PDFをダウンロード
+ * - affirmationsは箇条書き
+ */
+async function onExportPdf() {
+  if (!affirmations.value || affirmations.value.length === 0) {
+    alert('アファメーションが未生成です。先に「アファメーションを作る」を実行してください。')
+    return
+  }
+  try {
+    // 画像をBase64化
+    let imageBase64 = ''
+    if (latestResult.value.imageUrl) {
+      imageBase64 = await imageUrlToBase64(latestResult.value.imageUrl)
+    }
+    const res = await fetch('/api/pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        personalityResult: personalityResult.value,
+        latestResult: latestResult.value,
+        affirmations: affirmations.value,
+        imageUrl: latestResult.value.imageUrl || ''
+      })
+    })
+    if (!res.ok) {
+      alert('PDFの生成に失敗しました')
+      return
+    }
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'diagnosis_report.pdf'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (e) {
+    alert('PDFのダウンロード中にエラーが発生しました')
+  }
+}
 </script>
 
 <style scoped>

@@ -13,10 +13,13 @@
     "@google/generative-ai": "^0.24.1",
     "@hypernym/nuxt-anime": "2.1.1",
     "@mdi/font": "^7.4.47",
+    "@pdf-lib/fontkit": "^1.1.1",
     "animejs": "^4.1.3",
     "axios": "^1.11.0",
+    "jspdf": "^3.0.2",
     "nuxt": "^4.1.0",
     "openai": "^5.19.1",
+    "pdf-lib": "^1.17.1",
     "vue": "^3.5.20",
     "vue-router": "^4.5.1"
   },
