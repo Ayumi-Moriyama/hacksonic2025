@@ -28,12 +28,10 @@ export default defineEventHandler(async (event) => {
       })
     })
     const data = await response.json()
-    console.log('OpenAI API response:', data)
     if (data.data && data.data[0] && data.data[0].url) {
       try {
         // 画像URLをサーバー側でfetchし、Base64エンコードして返す
         const imageResponse = await fetch(data.data[0].url)
-        console.log('画像取得レスポンス:', imageResponse.status, imageResponse.headers)
         if (!imageResponse.ok) {
           // base64生成失敗時はimageUrlも返す
           return { error: `画像取得失敗: status=${imageResponse.status}`, imageUrl: data.data[0].url }

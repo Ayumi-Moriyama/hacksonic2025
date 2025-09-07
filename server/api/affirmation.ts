@@ -29,7 +29,6 @@ export default defineEventHandler(async (event) => {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
-    console.log("Gemini response text:", text);
 
     // 箇条書きのアファメーションを配列化＋説明文除外
     const affirmations = text

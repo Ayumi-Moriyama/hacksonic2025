@@ -1,5 +1,7 @@
 <template>
-  <v-container>
+  <div class="mirror-bg">
+    <div class="mirror-glint"></div>
+    <v-container>
     <h2 class="text-center mb-6">診断結果ダッシュボード</h2>
     <div v-if="results.length === 0" class="text-center my-8">
       <p>診断履歴がありません。</p>
@@ -147,6 +149,7 @@
       <v-btn color="error" @click="onResetDiagnosis">最初から診断をやり直す</v-btn>
     </div>
   </v-container>
+  </div>
 </template>
 
 <script setup>
@@ -225,6 +228,51 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.mirror-bg {
+  position: relative;
+  width: 100vw;
+  min-height: 100vh;
+  background: linear-gradient(120deg, #e0e0e0 0%, #f5f5f5 60%, #e0e0e0 100%);
+  overflow: hidden;
+}
+.mirror-glint {
+  position: absolute;
+  top: 10%;
+  left: -20%;
+  width: 140%;
+  height: 8px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.7) 50%, transparent 100%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(2px);
+  border-radius: 10px;
+  transform: rotate(-15deg) translateY(0%);
+  animation: glint-move 3.2s linear infinite;
+}
+
+@keyframes glint-move {
+  0% {
+    opacity: 0;
+    transform: translateX(-30%) translateY(0%) rotate(-15deg) scaleY(1);
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(-10%) translateY(20%) rotate(-15deg) scaleY(1.5);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(60%) translateY(60%) rotate(-15deg) scaleY(1.8);
+  }
+  80% {
+    opacity: 0.7;
+    transform: translateX(110%) translateY(90%) rotate(-15deg) scaleY(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(110%) translateY(100%) rotate(-15deg) scaleY(1);
+  }
+}
 .mb-6 {
   margin-bottom: 2rem;
 }
