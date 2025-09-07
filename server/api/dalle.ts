@@ -1,4 +1,5 @@
 import { defineEventHandler, readBody } from 'h3'
+import { Buffer } from 'buffer'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -27,12 +28,27 @@ export default defineEventHandler(async (event) => {
       })
     })
     const data = await response.json()
+    console.log('OpenAI API response:', data)
     if (data.data && data.data[0] && data.data[0].url) {
-      return { url: data.data[0].url }
+      try {
+        // 画像URLをサーバー側でfetchし、Base64エンコードして返す
+        const imageResponse = await fetch(data.data[0].url)
+        console.log('画像取得レスポンス:', imageResponse.status, imageResponse.headers)
+        if (!imageResponse.ok) {
+          // base64生成失敗時はimageUrlも返す
+          return { error: `画像取得失敗: status=${imageResponse.status}`, imageUrl: data.data[0].url }
+        }
+        const arrayBuffer = await imageResponse.arrayBuffer()
+        const base64 = Buffer.from(arrayBuffer).toString('base64')
+        return { base64, imageUrl: data.data[0].url }
+      } catch (imgErr: any) {
+        // base64生成失敗時はimageUrlも返す
+        return { error: `画像fetch/変換エラー: ${imgErr?.message || imgErr}`, imageUrl: data.data[0].url }
+      }
     } else {
-      return { error: '画像生成に失敗しました' }
+      return { error: `画像生成に失敗しました: ${JSON.stringify(data.error || data)}` }
     }
-  } catch (e) {
-    return { error: 'APIリクエストに失敗しました' }
+  } catch (e: any) {
+    return { error: `APIリクエストに失敗しました: ${e?.message || e}` }
   }
 })

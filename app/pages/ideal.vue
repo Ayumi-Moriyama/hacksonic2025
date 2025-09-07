@@ -219,11 +219,27 @@ function goToDiagnosis() {
     })
   })
     .then(res => res.json())
-    .then(data => {
-      // 診断結果データをsessionStorageに保存
+    .then(async data => {
+      // 画像生成API呼び出し
+      let dalleResult = {}
+      try {
+        // 理想の自分像テキストがあれば画像生成
+        if (data.idealSummary) {
+          const dalleRes = await fetch('/api/dalle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: data.idealSummary })
+          })
+          dalleResult = await dalleRes.json()
+        }
+      } catch (e) {
+        dalleResult = { error: '画像生成API呼び出しに失敗しました' }
+      }
+      // 診断結果データに画像生成結果を追加
+      const resultWithImage = { ...data, ...dalleResult }
       sessionStorage.setItem('ideal_themeOrder', JSON.stringify(themeOrder.value))
       sessionStorage.setItem('ideal_themeHistories', JSON.stringify(themeHistories))
-      sessionStorage.setItem('ideal_result', JSON.stringify(data))
+      sessionStorage.setItem('ideal_result', JSON.stringify(resultWithImage))
       progress.value = 100
       clearInterval(timer)
       setTimeout(() => {
