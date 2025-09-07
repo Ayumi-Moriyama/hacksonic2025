@@ -1,11 +1,12 @@
 import { readFile } from 'fs/promises'
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { PDFDocument, rgb } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
 import { defineEventHandler, send } from 'h3'
 import path from 'path'
 
 export default defineEventHandler(async (event) => {
   // フォントファイルのパス
-  const fontPath = path.resolve(process.cwd(), 'public', 'NotoSans-Regular.ttf')
+  const fontPath = path.resolve(process.cwd(), 'public', 'NotoSansJP-Regular.ttf')
   const fontBytes = await readFile(fontPath)
 
   // POSTデータ取得
@@ -19,10 +20,12 @@ export default defineEventHandler(async (event) => {
 
   // PDFドキュメント作成
   const pdfDoc = await PDFDocument.create()
+  // fontkitを登録
+  pdfDoc.registerFontkit(fontkit)
   const page = pdfDoc.addPage([595.28, 841.89]) // A4サイズ
 
-  // フォント埋め込み
-  const customFont = await pdfDoc.embedFont(fontBytes)
+  // フォント埋め込み（日本語対応）
+  const customFont = await pdfDoc.embedFont(fontBytes, { subset: true })
 
   let y = 800
   const marginX = 50
@@ -91,7 +94,8 @@ export default defineEventHandler(async (event) => {
     y -= 24
   }
 
-  // 画像
+  // 画像埋め込み部分は一時的にコメントアウト
+  /*
   if (imageUrl) {
     try {
       // node-fetchはNuxt3/NitroではグローバルfetchでOK
@@ -119,6 +123,7 @@ export default defineEventHandler(async (event) => {
       // 画像埋め込み失敗時はスキップ
     }
   }
+  */
 
   // アドバイス
   if (latestResult.compare) {
