@@ -1,5 +1,6 @@
 <template>
   <div class="loading-animation">
+    <div class="cloud-bg"></div>
     <v-progress-circular
       :size="80"
       :width="6"
@@ -30,12 +31,41 @@ const props = defineProps({
 
 <style scoped>
 .loading-animation {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 180px;
 }
+
+/* 雲の背景 */
+.cloud-bg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  width: 340px;
+  height: 180px;
+  background: rgba(255,255,255,0.75);
+  border-radius: 110px;
+  box-shadow:
+    80px 0px 80px 0px rgba(255,255,255,0.55),
+    160px 30px 100px 0px rgba(255,255,255,0.45),
+    60px 90px 90px 0px rgba(255,255,255,0.38),
+    -50px 40px 70px 0px rgba(255,255,255,0.50),
+    0px 0px 120px 20px rgba(255,255,255,0.32);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.v-progress-circular,
+.progress-text,
+.loading-text {
+  z-index: 1;
+  position: relative;
+}
+
 .progress-text {
   font-size: 1.4rem;
   font-weight: bold;

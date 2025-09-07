@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+<v-container class="ideal-bg">
     <v-row justify="center">
       <v-col cols="12" md="8">
         <h2 class="text-center mb-6">理想の自分を診断</h2>
@@ -49,10 +49,12 @@
             @keyup.enter="sendUserMessage"
             append-inner-icon="mdi-send"
             @click:append-inner="sendUserMessage"
+            class="bg-white"
+            hide-details
           ></v-text-field>
-          <v-btn color="primary" class="mt-2" :disabled="!userInput || loading" @click="sendUserMessage">
+          <!-- <v-btn color="primary" class="mt-2" :disabled="!userInput || loading" @click="sendUserMessage">
             送信
-          </v-btn>
+          </v-btn> -->
         </div>
         <!-- 次のテーマ選択 or 診断結果選択 -->
         <div v-else-if="step === 'nextOrResult'">
@@ -269,5 +271,9 @@ function goToDiagnosis() {
 }
 .chat-ai {
   text-align: left;
+}
+.ideal-bg {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #3a4668 0%, #b0c4de 100%);
 }
 </style>
