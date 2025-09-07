@@ -1,3 +1,5 @@
+# これは画像取得方法変更前の状態
+
 # Nuxt Minimal Starter
 
 Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
