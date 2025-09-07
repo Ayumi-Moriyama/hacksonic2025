@@ -182,5 +182,5 @@ export default defineEventHandler(async (event) => {
   const pdfBytes = await pdfDoc.save()
 
   event.node.res.setHeader('Content-Disposition', 'attachment; filename="diagnosis_report.pdf"')
-  send(event, Buffer.from(pdfBytes), 'application/pdf')
+  send(event, pdfBytes, 'application/pdf')
 })
