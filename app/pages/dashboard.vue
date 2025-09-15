@@ -214,10 +214,10 @@ async function onExportPdf() {
   }
   try {
     // 画像をBase64化
-    let imageBase64 = ''
-    if (latestResult.value.imageUrl) {
-      imageBase64 = await imageUrlToBase64(latestResult.value.imageUrl)
-    }
+    // let imageBase64 = ''
+    // if (latestResult.value.imageUrl) {
+    //   imageBase64 = await imageUrlToBase64(latestResult.value.imageUrl)
+    // }
     const res = await fetch('/api/pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -225,7 +225,7 @@ async function onExportPdf() {
         personalityResult: personalityResult.value,
         latestResult: latestResult.value,
         affirmations: affirmations.value,
-        imageUrl: latestResult.value.imageUrl || ''
+        // imageUrl: latestResult.value.imageUrl || ''
       })
     })
     if (!res.ok) {

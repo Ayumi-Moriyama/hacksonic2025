@@ -1,7 +1,7 @@
 import { readFile } from 'fs/promises'
 import { PDFDocument, rgb } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
-import { defineEventHandler, send } from 'h3'
+import { defineEventHandler } from 'h3'
 import path from 'path'
 
 export default defineEventHandler(async (event) => {
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   const page = pdfDoc.addPage([595.28, 841.89]) // A4サイズ
 
   // フォント埋め込み（日本語対応）
-  const customFont = await pdfDoc.embedFont(fontBytes, { subset: true })
+  const customFont = await pdfDoc.embedFont(fontBytes, { subset: false })
 
   let y = 800
   const marginX = 50
@@ -181,6 +181,9 @@ export default defineEventHandler(async (event) => {
 
   const pdfBytes = await pdfDoc.save()
 
+  event.node.res.setHeader('Content-Type', 'application/pdf')
   event.node.res.setHeader('Content-Disposition', 'attachment; filename="diagnosis_report.pdf"')
-  send(event, pdfBytes, 'application/pdf')
+  event.node.res.setHeader('Content-Length', pdfBytes.length)
+
+  return Buffer.from(pdfBytes)   // Uint8Array → Buffer に変換
 })
