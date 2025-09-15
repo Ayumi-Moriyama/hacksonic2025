@@ -94,22 +94,24 @@ export default defineEventHandler(async (event) => {
     y -= 24
   }
 
-  // 画像埋め込み部分は一時的にコメントアウト
-  /*
+  // 画像埋め込み
   if (imageUrl) {
     try {
-      // node-fetchはNuxt3/NitroではグローバルfetchでOK
       const imgRes = await fetch(imageUrl)
       if (imgRes.ok) {
+        const contentType = imgRes.headers.get("content-type") || ""
         const arrayBuffer = await imgRes.arrayBuffer()
         const imageBytes = Buffer.from(arrayBuffer)
-        // png/jpg自動判定
+
         let img
-        if (imageUrl.endsWith('.png')) {
+        if (contentType.includes("png")) {
           img = await pdfDoc.embedPng(imageBytes)
-        } else {
+        } else if (contentType.includes("jpeg") || contentType.includes("jpg")) {
           img = await pdfDoc.embedJpg(imageBytes)
+        } else {
+          throw new Error(`Unsupported image type: ${contentType}`)
         }
+
         const imgDims = img.scale(0.3)
         page.drawImage(img, {
           x: marginX,
@@ -120,10 +122,10 @@ export default defineEventHandler(async (event) => {
         y -= imgDims.height + 20
       }
     } catch (e) {
-      // 画像埋め込み失敗時はスキップ
+      console.error('画像埋め込み失敗:', e)
     }
   }
-  */
+
 
   // アドバイス
   if (latestResult.compare) {
