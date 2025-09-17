@@ -203,7 +203,7 @@ onMounted(() => {
  * PDF出力処理
  * - 診断データ取得
  * - latestResult.imageUrlがあればfetch→blob→FileReaderでBase64化
- * - jsPDFでA4縦1枚に情報をレイアウト（画像・テキスト・リスト）
+ * - pdf-libでA4縦1枚に情報をレイアウト（画像・テキスト・リスト）
  * - PDFをダウンロード
  * - affirmationsは箇条書き
  */

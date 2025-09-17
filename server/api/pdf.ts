@@ -4,97 +4,75 @@ import fontkit from '@pdf-lib/fontkit'
 import { defineEventHandler } from 'h3'
 import path from 'path'
 
+// 折り返し処理用関数
+function wrapText(text: string, font: any, fontSize: number, maxWidth: number) {
+  const words = text.split(/\s+/)
+  let lines: string[] = []
+  let currentLine = ''
+
+  for (let word of words) {
+    const testLine = currentLine ? currentLine + ' ' + word : word
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize)
+    if (testWidth > maxWidth && currentLine) {
+      lines.push(currentLine)
+      currentLine = word
+    } else {
+      currentLine = testLine
+    }
+  }
+  if (currentLine) lines.push(currentLine)
+  return lines
+}
+
+// テキスト描画のラッパー（ページ内に収める版）
+function drawWrappedText(page: any, text: string, x: number, y: number, options: any) {
+  const { font, size, color, maxWidth, lineHeight } = options
+  const lines = wrapText(text, font, size, maxWidth)
+  let cursorY = y
+  lines.forEach(line => {
+    if (cursorY < 50) return // 下端で打ち切る（1ページ制約）
+    page.drawText(line, { x, y: cursorY, font, size, color })
+    cursorY -= lineHeight
+  })
+  return cursorY
+}
+
 export default defineEventHandler(async (event) => {
-  // フォントファイルのパス
   const fontPath = path.resolve(process.cwd(), 'public', 'NotoSansJP-Regular.ttf')
   const fontBytes = await readFile(fontPath)
 
-  // POSTデータ取得
   const body = await readBody(event)
   const {
     personalityResult = '',
-    latestResult = {},
+    latestResult = {} as any,
     affirmations = [],
     imageUrl = ''
   } = body || {}
 
-  // PDFドキュメント作成
   const pdfDoc = await PDFDocument.create()
-  // fontkitを登録
   pdfDoc.registerFontkit(fontkit)
-  const page = pdfDoc.addPage([595.28, 841.89]) // A4サイズ
-
-  // フォント埋め込み（日本語対応）
+  const pageWidth = 595.28
+  const pageHeight = 841.89
+  const page = pdfDoc.addPage([pageWidth, pageHeight]) // A4サイズ
   const customFont = await pdfDoc.embedFont(fontBytes, { subset: false })
 
-  let y = 800
-  const marginX = 50
+  let y = pageHeight - 50
+  const marginX = 40
+  const contentWidth = pageWidth - marginX * 2
 
   // タイトル
   page.drawText('診断結果レポート', {
-    x: 297.64,
+    x: pageWidth / 2 - 60,
     y,
-    size: 22,
+    size: 18,
     font: customFont,
     color: rgb(0, 0, 0),
-    maxWidth: 495,
-    // 中央揃え
   })
   y -= 40
 
-  // 性格診断
-  page.drawText('■ 性格診断の結果', {
-    x: marginX,
-    y,
-    size: 16,
-    font: customFont,
-    color: rgb(0, 0, 0),
-  })
-  y -= 24
-  if (personalityResult) {
-    page.drawText(personalityResult, {
-      x: marginX,
-      y,
-      size: 12,
-      font: customFont,
-      color: rgb(0, 0, 0),
-      maxWidth: 495,
-    })
-    y -= 24
-  }
-  if (latestResult.gender) {
-    page.drawText(`性別: ${latestResult.gender}`, {
-      x: marginX,
-      y,
-      size: 12,
-      font: customFont,
-      color: rgb(0, 0, 0),
-    })
-    y -= 20
-  }
-
-  // 理想の人物像
-  page.drawText('■ 理想の人物像', {
-    x: marginX,
-    y,
-    size: 16,
-    font: customFont,
-    color: rgb(0, 0, 0),
-  })
-  y -= 24
-  if (latestResult.idealSummary) {
-    page.drawText(latestResult.idealSummary, {
-      x: marginX,
-      y,
-      size: 12,
-      font: customFont,
-      color: rgb(0, 0, 0),
-      maxWidth: 495,
-    })
-    y -= 24
-  }
-
-  // 画像埋め込み
+  // 画像
+  let imgDims = { width: 0, height: 0 }
+  let imageDrawn = false
   if (imageUrl) {
     try {
       const imgRes = await fetch(imageUrl)
@@ -112,20 +90,77 @@ export default defineEventHandler(async (event) => {
           throw new Error(`Unsupported image type: ${contentType}`)
         }
 
-        const imgDims = img.scale(0.3)
+        imgDims = img.scale(0.25)
         page.drawImage(img, {
           x: marginX,
           y: y - imgDims.height,
           width: imgDims.width,
           height: imgDims.height,
         })
-        y -= imgDims.height + 20
+        imageDrawn = true
       }
     } catch (e) {
       console.error('画像埋め込み失敗:', e)
     }
   }
 
+  // 理想の人物像
+  if (latestResult.idealSummary) {
+    const idealX = imageDrawn ? marginX + imgDims.width + 20 : marginX
+    const idealY = y
+    const idealWidth = imageDrawn ? pageWidth - idealX - 40 : contentWidth
+
+    page.drawText('■ 理想の人物像', {
+      x: idealX,
+      y: idealY,
+      size: 14,
+      font: customFont,
+      color: rgb(0, 0, 0),
+    })
+
+    y = drawWrappedText(page, latestResult.idealSummary, idealX, idealY - 18, {
+      font: customFont,
+      size: 10,
+      color: rgb(0, 0, 0),
+      maxWidth: idealWidth,
+      lineHeight: 13,
+    }) - 20
+  }
+
+  // 画像の下端にyを揃える
+  if (imageDrawn) {
+    y = Math.min(y, pageHeight - 50 - imgDims.height) - 20
+  }
+
+  // 性格診断
+  page.drawText('■ 性格診断の結果', {
+    x: marginX,
+    y,
+    size: 14,
+    font: customFont,
+    color: rgb(0, 0, 0),
+  })
+  y -= 18
+
+  if (personalityResult) {
+    y = drawWrappedText(page, personalityResult, marginX, y, {
+      font: customFont,
+      size: 10,
+      color: rgb(0, 0, 0),
+      maxWidth: contentWidth,
+      lineHeight: 13,
+    }) - 10
+  }
+
+  if (latestResult.gender) {
+    y = drawWrappedText(page, `性別: ${latestResult.gender}`, marginX, y, {
+      font: customFont,
+      size: 10,
+      color: rgb(0, 0, 0),
+      maxWidth: contentWidth,
+      lineHeight: 13,
+    }) - 8
+  }
 
   // アドバイス
   if (latestResult.compare) {
@@ -136,16 +171,15 @@ export default defineEventHandler(async (event) => {
       font: customFont,
       color: rgb(0, 0, 0),
     })
-    y -= 18
-    page.drawText(latestResult.compare, {
-      x: marginX,
-      y,
-      size: 12,
+    y -= 14
+
+    y = drawWrappedText(page, latestResult.compare, marginX, y, {
       font: customFont,
+      size: 10,
       color: rgb(0, 0, 0),
-      maxWidth: 495,
-    })
-    y -= 24
+      maxWidth: contentWidth,
+      lineHeight: 13,
+    }) - 10
   }
 
   // アファメーション
@@ -153,32 +187,30 @@ export default defineEventHandler(async (event) => {
     page.drawText('■ おすすめアファメーション', {
       x: marginX,
       y,
-      size: 16,
+      size: 14,
       font: customFont,
       color: rgb(0, 0, 0),
     })
-    y -= 24
+    y -= 18
+
     affirmations.forEach((a: string, i: number) => {
-      page.drawText(`${i + 1}. ${a}`, {
-        x: marginX + 10,
-        y,
-        size: 12,
+      y = drawWrappedText(page, `${i + 1}. ${a}`, marginX + 10, y, {
         font: customFont,
+        size: 10,
         color: rgb(0, 0, 0),
-        maxWidth: 475,
-      })
-      y -= 18
+        maxWidth: contentWidth - 20,
+        lineHeight: 13,
+      }) - 6
     })
   }
 
   // フッター
   page.drawText('Generated by hacksonic2025', {
-    x: 297.64,
+    x: pageWidth / 2 - 60,
     y: 30,
-    size: 10,
+    size: 9,
     font: customFont,
     color: rgb(0, 0, 0),
-    maxWidth: 495,
   })
 
   const pdfBytes = await pdfDoc.save()
@@ -187,5 +219,5 @@ export default defineEventHandler(async (event) => {
   event.node.res.setHeader('Content-Disposition', 'attachment; filename="diagnosis_report.pdf"')
   event.node.res.setHeader('Content-Length', pdfBytes.length)
 
-  return Buffer.from(pdfBytes)   // Uint8Array → Buffer に変換
+  return Buffer.from(pdfBytes)
 })
