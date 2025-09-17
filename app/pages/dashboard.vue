@@ -182,28 +182,28 @@ onMounted(() => {
 })
 
 /**
- * 画像URLをBase64に変換
+ * 画像URLをBase64に変換→フロント側ではしない
  */
-async function imageUrlToBase64(url) {
-  try {
-    const res = await fetch(url)
-    const blob = await res.blob()
-    return await new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onloadend = () => resolve(reader.result)
-      reader.onerror = reject
-      reader.readAsDataURL(blob)
-    })
-  } catch {
-    return null
-  }
-}
+// async function imageUrlToBase64(url) {
+//   try {
+//     const res = await fetch(url)
+//     const blob = await res.blob()
+//     return await new Promise((resolve, reject) => {
+//       const reader = new FileReader()
+//       reader.onloadend = () => resolve(reader.result)
+//       reader.onerror = reject
+//       reader.readAsDataURL(blob)
+//     })
+//   } catch {
+//     return null
+//   }
+// }
 
 /*
  * PDF出力処理
  * - 診断データ取得
  * - latestResult.imageUrlがあればfetch→blob→FileReaderでBase64化
- * - jsPDFでA4縦1枚に情報をレイアウト（画像・テキスト・リスト）
+ * - pdf-libでA4縦1枚に情報をレイアウト（画像・テキスト・リスト）
  * - PDFをダウンロード
  * - affirmationsは箇条書き
  */
@@ -213,11 +213,6 @@ async function onExportPdf() {
     return
   }
   try {
-    // 画像をBase64化
-    let imageBase64 = ''
-    if (latestResult.value.imageUrl) {
-      imageBase64 = await imageUrlToBase64(latestResult.value.imageUrl)
-    }
     const res = await fetch('/api/pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
