@@ -38,8 +38,10 @@ function drawWrappedText(page: any, text: string, x: number, y: number, options:
 }
 
 export default defineEventHandler(async (event) => {
-  const fontPath = path.resolve(process.cwd(), 'public', 'NotoSansJP-Regular.ttf')
-  const fontBytes = await readFile(fontPath)
+  const fontUrl = `${getRequestURL(event).origin}/NotoSansJP-Regular.ttf`
+  // const fontPath = path.resolve(process.cwd(), 'public', 'NotoSansJP-Regular.ttf')
+  // const fontBytes = await readFile(fontPath)
+  const fontBytes = await fetch(fontUrl).then(res => res.arrayBuffer())
 
   const body = await readBody(event)
   const {
